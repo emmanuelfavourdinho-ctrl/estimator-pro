@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estimator Pro</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-4xl w-full bg-gray-800 p-6 rounded-2xl shadow-lg sm:p-4">
+    
+    <!-- Contractor Info -->
+    <div class="mb-6">
+      <h2 class="text-3xl sm:text-2xl font-bold mb-4 text-center">Construction Estimator</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <input type="text" id="contractorName" placeholder="Contractor Name / Company" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
+        <input type="email" id="email" placeholder="Email" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
+        <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
+        <input type="date" id="date" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm" value="">
+      </div>
+    </div>
+
+    <!-- Materials Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full table-auto mb-6">
+        <thead class="bg-gray-700">
+          <tr>
+            <th class="px-4 py-2">Material</th>
+            <th class="px-4 py-2">Quantity</th>
+            <th class="px-4 py-2">Unit Cost (₣)</th>
+            <th class="px-4 py-2">Total (₣)</th>
+            <th class="px-4 py-2">Action</th>
+          </tr>
+        </thead>
+        <tbody id="materialsBody">
+          <!-- Rows get added here dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <button id="addRowBtn" class="bg-green-600 px-6 py-3 rounded-xl hover:bg-green-500 transition w-full sm:w-auto mb-4">Add Material</button>
+
+    <!-- Grand Total -->
+    <div class="mb-6 text-right text-xl font-bold">Grand Total: <span id="grandTotal">0</span> ₣</div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row gap-4">
+      <button id="downloadPdf" class="bg-blue-600 px-6 py-3 rounded-xl hover:bg-blue-500 transition w-full sm:w-auto">Download PDF</button>
+      <button id="newEstimate" class="bg-gray-700 px-6 py-3 rounded-xl hover:bg-gray-600 transition w-full sm:w-auto">New Estimate</button>
+    </div>
+
+  </div>
+
+<script>
+// Initialize date to today
+document.getElementById("date").valueAsDate = new Date();
+
+// Functionality
+let materialsBody = document.getElementById("materialsBody");
+let grandTotalEl = document.getElementById("grandTotal");
+
+function updateTotals() {
+  let total = 0;
+  const rows = materialsBody.querySelectorAll("tr");
+  rows.forEach(row => {
+    const qty = parseFloat(row.querySelector(".qty").value) || 0;
+    const unit = parseFloat(row.querySelector(".unit").value) || 0;
+    const totalCell = row.querySelector(".total");
+    const rowTotal = qty * unit;
+    totalCell.textContent = rowTotal.toFixed(2);
+    total += rowTotal;
+  });
+  grandTotalEl.textContent = total.toFixed(2);
+}
+
+function addRow(material="", qty="", unit="") {
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td class="px-4 py-2"><input type="text" class="w-full p-2 rounded bg-gray-700 border border-gray-600 material" value="${material}"></td>
+    <td class="px-4 py-2"><input type="number" class="w-full p-2 rounded bg-gray-700 border border-gray-600 qty" value="${qty}" min="0"></td>
+    <td class="px-4 py-2"><input type="number" class="w-full p-2 rounded bg-gray-700 border border-gray-600 unit" value="${unit}" min="0"></td>
+    <td class="px-4 py-2 total">${(qty*unit).toFixed(2)}</td>
+    <td class="px-4 py-2 text-center"><button class="bg-red-600 px-3 py-1 rounded hover:bg-red-500 removeBtn">Remove</button></td>
+  `;
+  materialsBody.appendChild(row);
+
+  // Add event listeners
+  row.querySelectorAll(".qty, .unit").forEach(input => input.addEventListener("input", updateTotals));
+  row.querySelector(".removeBtn").addEventListener("click", () => {
+    row.remove();
+    updateTotals();
+  });
+  updateTotals();
+}
+
+// Buttons
+document.getElementById("addRowBtn").addEventListener("click", () => addRow());
+document.getElementById("newEstimate").addEventListener("click", () => {
+  document.getElementById("contractorName").value = "";
+  document.getElementById("email").value = "";
+  document.getElementById("phone").value = "";
+  document.getElementById("date").valueAsDate = new Date();
+  materialsBody.innerHTML = "";
+  grandTotalEl.textContent = "0";
+});
+
+// PDF Download
+document.getElementById("downloadPdf").addEventListener("click", () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const contractorName = document.getElementById("contractorName").value;
+  const email = document.getElementById("email").value;
+  const phone = document.getElementById("phone").value;
+  const date = document.getElementById("date").value;
+  let y = 10;
+  doc.setFontSize(16);
+  doc.text("Construction Estimate", 105, y, { align: "center" });
+  y += 10;
+  doc.setFontSize(12);
+  doc.text(`Contractor: ${contractorName}`, 10, y);
+  y += 7;
+  doc.text(`Email: ${email}`, 10, y);
+  y += 7;
+  doc.text(`Phone: ${phone}`, 10, y);
+  y += 7;
+  doc.text(`Date: ${date}`, 10, y);
+  y += 10;
+
+  // Table
+  doc.text("Materials:", 10, y);
+  y += 7;
+  const rows = [];
+  materialsBody.querySelectorAll("tr").forEach(row => {
+    const material = row.querySelector(".material").value;
+    const qty = row.querySelector(".qty").value;
+    const unit = row.querySelector(".unit").value;
+    const total = row.querySelector(".total").textContent;
+    rows.push([material, qty, unit, total]);
+  });
+
+  rows.forEach(r => {
+    doc.text(`${r[0]} | Qty: ${r[1]} | Unit: ${r[2]} | Total: ${r[3]} ₣`, 10, y);
+    y += 7;
+  });
+
+  y += 5;
+  doc.text(`Grand Total: ${grandTotalEl.textContent} ₣`, 10, y);
+
+  doc.save("estimate.pdf");
+});
+</script>
+</body>
+</html>
