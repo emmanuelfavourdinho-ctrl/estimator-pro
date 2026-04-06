@@ -4,94 +4,119 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Estimator Pro</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- AutoTable (THIS is the magic) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
-  <div class="max-w-4xl w-full bg-gray-800 p-6 rounded-2xl shadow-lg sm:p-4">
 
-    <!-- Contractor Info -->
-    <div class="mb-6">
-      <h2 class="text-3xl sm:text-2xl font-bold mb-4 text-center">Construction Estimator</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <input type="text" id="contractorName" placeholder="Contractor Name / Company" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
-        <input type="email" id="email" placeholder="Email" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
-        <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
-        <input type="date" id="date" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm" value="">
-      </div>
+<div class="max-w-4xl w-full bg-gray-800 p-6 rounded-2xl shadow-lg sm:p-4">
+
+  <!-- Contractor Info -->
+  <div class="mb-6">
+    <h2 class="text-3xl sm:text-2xl font-bold mb-4 text-center">Construction Estimator</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <input type="text" id="contractorName" placeholder="Contractor Name / Company" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600">
+      <input type="email" id="email" placeholder="Email" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600">
+      <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600">
+      <input type="date" id="date" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600">
     </div>
-
-    <!-- Materials Table -->
-    <div class="overflow-x-auto">
-      <table class="w-full table-auto mb-6">
-        <thead class="bg-gray-700">
-          <tr>
-            <th class="px-4 py-2">No</th>
-            <th class="px-4 py-2">Material</th>
-            <th class="px-4 py-2">Quantity</th>
-            <th class="px-4 py-2">Unit Cost (₣)</th>
-            <th class="px-4 py-2">Total (₣)</th>
-            <th class="px-4 py-2">Action</th>
-          </tr>
-        </thead>
-        <tbody id="materialsBody"></tbody>
-      </table>
-    </div>
-
-    <button id="addRowBtn" class="bg-green-600 px-6 py-3 rounded-xl hover:bg-green-500 transition w-full sm:w-auto mb-4">Add Material</button>
-
-    <!-- Grand Total -->
-    <div class="mb-6 text-right text-xl font-bold">Grand Total: <span id="grandTotal">0</span> ₣</div>
-
-    <!-- Action Buttons -->
-    <div class="flex flex-col sm:flex-row gap-4">
-      <button id="downloadPdf" class="bg-blue-600 px-6 py-3 rounded-xl hover:bg-blue-500 transition w-full sm:w-auto">Download PDF</button>
-      <button id="newEstimate" class="bg-gray-700 px-6 py-3 rounded-xl hover:bg-gray-600 transition w-full sm:w-auto">New Estimate</button>
-    </div>
-
   </div>
+
+  <!-- Table -->
+  <div class="overflow-x-auto">
+    <table class="w-full table-auto mb-6">
+      <thead class="bg-gray-700">
+        <tr>
+          <th class="px-4 py-2">No</th>
+          <th class="px-4 py-2">Material</th>
+          <th class="px-4 py-2">Quantity</th>
+          <th class="px-4 py-2">Unit Cost (₣)</th>
+          <th class="px-4 py-2">Total (₣)</th>
+          <th class="px-4 py-2">Action</th>
+        </tr>
+      </thead>
+      <tbody id="materialsBody"></tbody>
+    </table>
+  </div>
+
+  <button id="addRowBtn" class="bg-green-600 px-6 py-3 rounded-xl hover:bg-green-500 w-full sm:w-auto mb-4">
+    Add Material
+  </button>
+
+  <!-- Total -->
+  <div class="mb-6 text-right text-xl font-bold">
+    Grand Total: <span id="grandTotal">0</span> ₣
+  </div>
+
+  <!-- Buttons -->
+  <div class="flex flex-col sm:flex-row gap-4">
+    <button id="downloadPdf" class="bg-blue-600 px-6 py-3 rounded-xl hover:bg-blue-500 w-full sm:w-auto">
+      Download PDF
+    </button>
+    <button id="newEstimate" class="bg-gray-700 px-6 py-3 rounded-xl hover:bg-gray-600 w-full sm:w-auto">
+      New Estimate
+    </button>
+  </div>
+
+</div>
 
 <script>
 let materialsBody = document.getElementById("materialsBody");
 let grandTotalEl = document.getElementById("grandTotal");
 
-// Set date to today
+// Set date
 document.getElementById("date").valueAsDate = new Date();
 
-// Format numbers for PDF
-function format(num) {
-  return Number(num || 0).toLocaleString();
-}
-
-// Update totals & row numbers
+// Update totals
 function updateTotals() {
   let total = 0;
   const rows = materialsBody.querySelectorAll("tr");
+
   rows.forEach((row, index) => {
     row.querySelector(".no").textContent = index + 1;
 
     const qtyText = row.querySelector(".qty").value;
+    const qty = parseFloat(qtyText.replace(/[^0-9.]/g, "")) || 0;
     const unit = parseFloat(row.querySelector(".unit").value) || 0;
 
-    const numericQty = parseFloat(qtyText.replace(/[^0-9.]/g, "")) || 0;
-    const rowTotal = numericQty * unit;
-    row.querySelector(".total").textContent = format(rowTotal);
+    const rowTotal = qty * unit;
+    row.querySelector(".total").textContent = rowTotal.toFixed(2);
+
     total += rowTotal;
   });
-  grandTotalEl.textContent = format(total);
+
+  grandTotalEl.textContent = total.toFixed(2);
 }
 
-// Add a new row
+// Add row
 function addRow(material="", qty="", unit="") {
   const row = document.createElement("tr");
+
   row.innerHTML = `
     <td class="px-4 py-2 no"></td>
-    <td class="px-4 py-2"><input type="text" class="w-full p-2 rounded bg-gray-700 border border-gray-600 material" value="${material}"></td>
-    <td class="px-4 py-2"><input type="text" placeholder="10 bags" class="w-full p-2 rounded bg-gray-700 border border-gray-600 qty" value="${qty}"></td>
-    <td class="px-4 py-2"><input type="number" step="any" class="w-full p-2 rounded bg-gray-700 border border-gray-600 unit" value="${unit}"></td>
+    <td class="px-4 py-2">
+      <input type="text" class="w-full p-2 rounded bg-gray-700 border border-gray-600 material" value="${material}">
+    </td>
+    <td class="px-4 py-2">
+      <input type="text" class="w-full p-2 rounded bg-gray-700 border border-gray-600 qty" value="${qty}" placeholder="10 bags">
+    </td>
+    <td class="px-4 py-2">
+      <input type="number" class="w-full p-2 rounded bg-gray-700 border border-gray-600 unit" value="${unit}">
+    </td>
     <td class="px-4 py-2 total">0</td>
-    <td class="px-4 py-2 text-center"><button class="bg-red-600 px-3 py-1 rounded hover:bg-red-500 removeBtn">Remove</button></td>
+    <td class="px-4 py-2 text-center">
+      <button class="bg-red-600 px-3 py-1 rounded hover:bg-red-500 removeBtn">Remove</button>
+    </td>
   `;
+
   materialsBody.appendChild(row);
 
   row.querySelectorAll("input").forEach(input => {
@@ -108,58 +133,78 @@ function addRow(material="", qty="", unit="") {
 
 // Buttons
 document.getElementById("addRowBtn").addEventListener("click", () => addRow());
+
 document.getElementById("newEstimate").addEventListener("click", () => {
   materialsBody.innerHTML = "";
   grandTotalEl.textContent = "0";
 });
 
-// Download PDF — professional layout
+// 🔥 PROFESSIONAL PDF (AutoTable)
 document.getElementById("downloadPdf").addEventListener("click", () => {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  let y = 20;
   const contractor = document.getElementById("contractorName").value;
   const email = document.getElementById("email").value;
   const phone = document.getElementById("phone").value;
   const date = document.getElementById("date").value;
 
+  // Header
   doc.setFontSize(16);
-  doc.text("Construction Estimate", 105, y, { align: "center" });
-  y += 10;
+  doc.text("Construction Estimate", 14, 15);
 
-  doc.setFontSize(12);
-  doc.text(`Contractor: ${contractor}`, 14, y); y += 7;
-  doc.text(`Email: ${email}`, 14, y); y += 7;
-  doc.text(`Phone: ${phone}`, 14, y); y += 7;
-  doc.text(`Date: ${date}`, 14, y); y += 10;
+  doc.setFontSize(11);
+  doc.text(`Date: ${date}`, 14, 25);
+  doc.text(`Contractor: ${contractor}`, 14, 32);
+  doc.text(`Phone: ${phone} | Email: ${email}`, 14, 39);
 
-  // Table header
-  doc.setFont(undefined, 'bold');
-  doc.text("No  Material          Qty       Unit(₣)   Total(₣)", 14, y);
-  doc.setFont(undefined, 'normal');
-  y += 7;
+  // Table Data
+  let tableData = [];
+  let grandTotal = 0;
 
   materialsBody.querySelectorAll("tr").forEach((row, i) => {
-    const material = row.querySelector(".material").value;
-    const qty = row.querySelector(".qty").value;
-    const unit = row.querySelector(".unit").value;
-    const total = row.querySelector(".total").textContent;
+    const material = row.querySelector(".material").value || "-";
+    const qtyText = row.querySelector(".qty").value || "-";
+    const unit = parseFloat(row.querySelector(".unit").value) || 0;
 
-    const line = `${i+1}  ${material.padEnd(15)}  ${qty.padEnd(8)}  ${unit.toString().padEnd(8)}  ${total}`;
-    doc.text(line, 14, y);
-    y += 7;
+    const qtyNum = parseFloat(qtyText.replace(/[^0-9.]/g, "")) || 0;
+    const total = qtyNum * unit;
+
+    grandTotal += total;
+
+    tableData.push([
+      i + 1,
+      material,
+      qtyText,
+      unit.toFixed(2),
+      total.toFixed(2)
+    ]);
   });
 
-  y += 5;
-  doc.setFont(undefined, 'bold');
-  doc.text(`Grand Total: ${grandTotalEl.textContent} ₣`, 14, y);
+  // Table
+  doc.autoTable({
+    startY: 50,
+    head: [["No", "Item", "Qty", "Unit Price (₣)", "Total (₣)"]],
+    body: tableData,
+    theme: "grid",
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [40, 40, 40] }
+  });
+
+  // Total
+  doc.setFontSize(12);
+  doc.text(
+    `GRAND TOTAL: ${grandTotal.toFixed(2)} ₣`,
+    14,
+    doc.lastAutoTable.finalY + 10
+  );
 
   doc.save("estimate.pdf");
 });
 
-// Initialize with one row
+// INIT
 addRow();
 </script>
+
 </body>
 </html>
