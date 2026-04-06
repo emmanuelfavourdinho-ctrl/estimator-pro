@@ -184,7 +184,7 @@ document.getElementById("downloadPdf").addEventListener("click", () => {
   // Table
   doc.autoTable({
     startY: 50,
-    head: [["No", "Item", "Qty", "Unit Price (₣)", "Total (₣)"]],
+    head: [["No", "Item", "Qty", "Unit Price (CFA)", "Total (CFA)"]],
     body: tableData,
     theme: "grid",
     styles: { fontSize: 10 },
@@ -194,7 +194,7 @@ document.getElementById("downloadPdf").addEventListener("click", () => {
   // Total
   doc.setFontSize(12);
   doc.text(
-    `GRAND TOTAL: ${grandTotal.toFixed(2)} ₣`,
+    `GRAND TOTAL: ${grandTotal.toFixed(2)} CFA`,
     14,
     doc.lastAutoTable.finalY + 10
   );
