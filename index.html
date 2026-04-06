@@ -1,234 +1,135 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Estimator Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Tailwind -->
+  <title>Estimator Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-
-<body class="bg-gray-900 text-white min-h-screen p-4">
-
-<div class="max-w-5xl mx-auto">
-
-  <h1 class="text-3xl font-bold text-center mb-6">Estimator Pro 🚀</h1>
-
-  <div class="bg-gray-800 p-4 rounded-2xl shadow-lg">
-
-    <table class="w-full text-left text-sm">
-      <thead>
-        <tr class="text-gray-400 border-b border-gray-700">
-          <th>No</th>
-          <th>Item</th>
-          <th>Qty</th>
-          <th class="text-right">Unit Price</th>
-          <th class="text-right">Total</th>
-          <th></th>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4"><div class="max-w-4xl w-full bg-gray-800 p-6 rounded-2xl shadow-lg sm:p-4">  <!-- Contractor Info -->  <div class="mb-6">
+    <h2 class="text-3xl sm:text-2xl font-bold mb-4 text-center">Construction Estimator</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <input type="text" id="contractorName" placeholder="Contractor Name / Company" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none">
+      <input type="email" id="email" placeholder="Email" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none">
+      <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none">
+      <input type="date" id="date" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none">
+    </div>
+  </div>  <!-- Table -->  <div class="overflow-x-auto">
+    <table class="w-full table-auto mb-6">
+      <thead class="bg-gray-700">
+        <tr>
+          <th class="px-4 py-2">No</th>
+          <th class="px-4 py-2">Material</th>
+          <th class="px-4 py-2">Qty</th>
+          <th class="px-4 py-2">Unit Cost (₣)</th>
+          <th class="px-4 py-2">Total (₣)</th>
+          <th class="px-4 py-2">Action</th>
         </tr>
       </thead>
-
-      <tbody id="tableBody"></tbody>
+      <tbody id="materialsBody"></tbody>
     </table>
+  </div><button id="addRowBtn" class="bg-green-600 px-6 py-3 rounded-xl hover:bg-green-500 w-full sm:w-auto mb-4">Add Material</button>
 
-    <!-- Buttons -->
-    <div class="grid grid-cols-1 gap-2 mt-4">
-      <button onclick="addRow()" class="bg-blue-600 p-3 rounded-xl hover:bg-blue-700">
-        + Add Item
-      </button>
+  <div class="mb-6 text-right text-xl font-bold">Grand Total: <span id="grandTotal">0</span> ₣</div>  <div class="flex flex-col sm:flex-row gap-4">
+    <button id="downloadPdf" class="bg-blue-600 px-6 py-3 rounded-xl hover:bg-blue-500 w-full sm:w-auto">Download PDF</button>
+    <button id="newEstimate" class="bg-gray-700 px-6 py-3 rounded-xl hover:bg-gray-600 w-full sm:w-auto">New Estimate</button>
+  </div></div><script>
+let materialsBody = document.getElementById("materialsBody");
+let grandTotalEl = document.getElementById("grandTotal");
 
-      <button onclick="generateShareLink()" class="bg-purple-600 p-3 rounded-xl">
-        Share Estimate 🔗
-      </button>
+// SET DATE
+document.getElementById("date").valueAsDate = new Date();
 
-      <button onclick="downloadPDF(event)" class="bg-green-600 p-3 rounded-xl">
-        Download PDF
-      </button>
-    </div>
-
-    <!-- Grand Total -->
-    <div class="mt-6 text-right text-xl font-bold">
-      Grand Total: <span id="grandTotal">0</span>
-    </div>
-
-  </div>
-</div>
-
-<script>
-let items = [];
-
-/* FORMAT NUMBERS */
-function formatNumber(num) {
-  return Number(num || 0).toLocaleString();
-}
-
-/* EXTRACT NUMBER FROM "10 bags" */
-function extractNumber(qtyText) {
-  const match = qtyText.match(/[\\d.]+/);
+function extractNumber(qty) {
+  const match = qty.match(/[\d.]+/);
   return match ? parseFloat(match[0]) : 0;
 }
 
-/* SAVE */
-function saveData() {
-  localStorage.setItem("estimate", JSON.stringify(items));
+function format(num) {
+  return Number(num || 0).toLocaleString();
 }
 
-/* LOAD */
-function loadData() {
-  const saved = localStorage.getItem("estimate");
-  if (saved) {
-    items = JSON.parse(saved);
-  } else {
-    addRow();
-  }
-}
+function updateTotals() {
+  let total = 0;
+  const rows = materialsBody.querySelectorAll("tr");
 
-/* ADD ROW */
-function addRow() {
-  items.push({ item: "", qty: "", price: "" });
-  render();
-}
+  rows.forEach((row, index) => {
+    row.querySelector(".no").textContent = index + 1;
 
-/* DELETE */
-function deleteRow(index) {
-  items.splice(index, 1);
-  render();
-}
+    const qtyText = row.querySelector(".qty").value;
+    const qty = extractNumber(qtyText);
+    const unit = parseFloat(row.querySelector(".unit").value) || 0;
 
-/* UPDATE */
-function updateItem(index, field, value) {
-  items[index][field] = value;
-  render();
-}
+    const rowTotal = qty * unit;
+    row.querySelector(".total").textContent = format(rowTotal);
 
-/* RENDER */
-function render() {
-  const body = document.getElementById("tableBody");
-  body.innerHTML = "";
-
-  let grandTotal = 0;
-
-  items.forEach((item, index) => {
-    const qtyValue = extractNumber(item.qty);
-    const price = Number(item.price || 0);
-    const total = qtyValue * price;
-    grandTotal += total;
-
-    body.innerHTML += `
-      <tr class="border-b border-gray-700">
-        <td>${index + 1}</td>
-
-        <td>
-          <input 
-            value="${item.item}" 
-            oninput="updateItem(${index}, 'item', this.value)"
-            class="bg-gray-700 p-2 rounded w-full"
-          />
-        </td>
-
-        <td>
-          <input 
-            placeholder="e.g. 10 bags"
-            value="${item.qty}" 
-            oninput="updateItem(${index}, 'qty', this.value)"
-            class="bg-gray-700 p-2 rounded w-full"
-          />
-        </td>
-
-        <td>
-          <input 
-            type="number"
-            step="any"
-            value="${item.price}" 
-            oninput="updateItem(${index}, 'price', this.value)"
-            class="bg-gray-700 p-2 rounded w-full text-right"
-          />
-        </td>
-
-        <td class="text-right">
-          ${formatNumber(total)}
-        </td>
-
-        <td>
-          <button onclick="deleteRow(${index})" class="text-red-400">🗑️</button>
-        </td>
-      </tr>
-    `;
+    total += rowTotal;
   });
 
-  document.getElementById("grandTotal").innerText = formatNumber(grandTotal);
-  saveData();
+  grandTotalEl.textContent = format(total);
 }
 
-/* PDF */
-async function downloadPDF(event) {
-  const btn = event.target;
-  btn.innerText = "Generating...";
+function addRow(material="", qty="", unit="") {
+  const row = document.createElement("tr");
 
+  row.innerHTML = `
+    <td class="px-4 py-2 no"></td>
+    <td class="px-4 py-2"><input type="text" class="w-full p-2 rounded bg-gray-700 border border-gray-600 material" value="${material}"></td>
+    <td class="px-4 py-2"><input type="text" placeholder="10 bags" class="w-full p-2 rounded bg-gray-700 border border-gray-600 qty" value="${qty}"></td>
+    <td class="px-4 py-2"><input type="number" step="any" class="w-full p-2 rounded bg-gray-700 border border-gray-600 unit" value="${unit}"></td>
+    <td class="px-4 py-2 total">0</td>
+    <td class="px-4 py-2 text-center"><button class="bg-red-600 px-3 py-1 rounded hover:bg-red-500 removeBtn">Remove</button></td>
+  `;
+
+  materialsBody.appendChild(row);
+
+  row.querySelectorAll("input").forEach(input => {
+    input.addEventListener("input", updateTotals);
+  });
+
+  row.querySelector(".removeBtn").addEventListener("click", () => {
+    row.remove();
+    updateTotals();
+  });
+
+  updateTotals();
+}
+
+// BUTTONS
+document.getElementById("addRowBtn").addEventListener("click", () => addRow());
+
+// RESET
+document.getElementById("newEstimate").addEventListener("click", () => {
+  materialsBody.innerHTML = "";
+  grandTotalEl.textContent = "0";
+});
+
+// PDF
+document.getElementById("downloadPdf").addEventListener("click", () => {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  doc.setFontSize(18);
-  doc.text("Estimator Pro", 14, 20);
-
-  let y = 40;
-
-  doc.setFontSize(12);
-  doc.text("No  Item   Qty   Unit Price   Total", 14, y);
+  let y = 20;
+  doc.text("Construction Estimate", 14, y);
   y += 10;
 
-  let grandTotal = 0;
+  materialsBody.querySelectorAll("tr").forEach((row, i) => {
+    const material = row.querySelector(".material").value;
+    const qty = row.querySelector(".qty").value;
+    const unit = row.querySelector(".unit").value;
+    const total = row.querySelector(".total").textContent;
 
-  items.forEach((item, index) => {
-    const qtyValue = extractNumber(item.qty);
-    const total = qtyValue * item.price;
-    grandTotal += total;
-
-    doc.text(
-      `${index + 1}  ${item.item}  ${item.qty}  ${formatNumber(item.price)}  ${formatNumber(total)}`,
-      14,
-      y
-    );
-    y += 10;
+    doc.text(`${i + 1}. ${material} | ${qty} | ${unit} | ${total}`, 14, y);
+    y += 8;
   });
 
-  y += 10;
-  doc.text(`Grand Total: ${formatNumber(grandTotal)}`, 14, y);
+  y += 5;
+  doc.text(`Grand Total: ${grandTotalEl.textContent} ₣`, 14, y);
 
   doc.save("estimate.pdf");
+});
 
-  btn.innerText = "Download PDF";
-}
-
-/* SHARE */
-function generateShareLink() {
-  const data = btoa(JSON.stringify(items));
-  const url = `${window.location.origin}?data=${data}`;
-  navigator.clipboard.writeText(url);
-  alert("Share link copied!");
-}
-
-/* LOAD FROM URL */
-function loadFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  const data = params.get("data");
-
-  if (data) {
-    items = JSON.parse(atob(data));
-  }
-}
-
-/* INIT */
-window.onload = () => {
-  loadFromURL();
-  loadData();
-  render();
-};
-</script>
-
-</body>
+// INIT
+addRow();
+</script></body>
 </html>
