@@ -2,156 +2,233 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Estimator Pro</title>
-  <!-- Tailwind CSS CDN -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- jsPDF CDN -->
+
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
-  <div class="max-w-4xl w-full bg-gray-800 p-6 rounded-2xl shadow-lg sm:p-4">
-    
-    <!-- Contractor Info -->
-    <div class="mb-6">
-      <h2 class="text-3xl sm:text-2xl font-bold mb-4 text-center">Construction Estimator</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <input type="text" id="contractorName" placeholder="Contractor Name / Company" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
-        <input type="email" id="email" placeholder="Email" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
-        <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm">
-        <input type="date" id="date" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none sm:text-sm" value="">
-      </div>
-    </div>
 
-    <!-- Materials Table -->
-    <div class="overflow-x-auto">
-      <table class="w-full table-auto mb-6">
-        <thead class="bg-gray-700">
-          <tr>
-            <th class="px-4 py-2">Material</th>
-            <th class="px-4 py-2">Quantity</th>
-            <th class="px-4 py-2">Unit Cost (₣)</th>
-            <th class="px-4 py-2">Total (₣)</th>
-            <th class="px-4 py-2">Action</th>
-          </tr>
-        </thead>
-        <tbody id="materialsBody">
-          <!-- Rows get added here dynamically -->
-        </tbody>
-      </table>
-    </div>
+<body class="bg-gray-900 text-white min-h-screen p-4">
 
-    <button id="addRowBtn" class="bg-green-600 px-6 py-3 rounded-xl hover:bg-green-500 transition w-full sm:w-auto mb-4">Add Material</button>
+<div class="max-w-5xl mx-auto">
+
+  <h1 class="text-3xl font-bold text-center mb-6">Estimator Pro 🚀</h1>
+
+  <div class="bg-gray-800 p-4 rounded-2xl shadow-lg">
+
+    <table class="w-full text-left text-sm">
+      <thead>
+        <tr class="text-gray-400 border-b border-gray-700">
+          <th>No</th>
+          <th>Item</th>
+          <th>Qty</th>
+          <th class="text-right">Unit Price</th>
+          <th class="text-right">Total</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <!-- Buttons -->
+    <div class="grid grid-cols-1 gap-2 mt-4">
+      <button onclick="addRow()" class="bg-blue-600 p-3 rounded-xl hover:bg-blue-700">
+        + Add Item
+      </button>
+
+      <button onclick="generateShareLink()" class="bg-purple-600 p-3 rounded-xl">
+        Share Estimate 🔗
+      </button>
+
+      <button onclick="downloadPDF(event)" class="bg-green-600 p-3 rounded-xl">
+        Download PDF
+      </button>
+    </div>
 
     <!-- Grand Total -->
-    <div class="mb-6 text-right text-xl font-bold">Grand Total: <span id="grandTotal">0</span> ₣</div>
-
-    <!-- Action Buttons -->
-    <div class="flex flex-col sm:flex-row gap-4">
-      <button id="downloadPdf" class="bg-blue-600 px-6 py-3 rounded-xl hover:bg-blue-500 transition w-full sm:w-auto">Download PDF</button>
-      <button id="newEstimate" class="bg-gray-700 px-6 py-3 rounded-xl hover:bg-gray-600 transition w-full sm:w-auto">New Estimate</button>
+    <div class="mt-6 text-right text-xl font-bold">
+      Grand Total: <span id="grandTotal">0</span>
     </div>
 
   </div>
+</div>
 
 <script>
-// Initialize date to today
-document.getElementById("date").valueAsDate = new Date();
+let items = [];
 
-// Functionality
-let materialsBody = document.getElementById("materialsBody");
-let grandTotalEl = document.getElementById("grandTotal");
-
-function updateTotals() {
-  let total = 0;
-  const rows = materialsBody.querySelectorAll("tr");
-  rows.forEach(row => {
-    const qty = parseFloat(row.querySelector(".qty").value) || 0;
-    const unit = parseFloat(row.querySelector(".unit").value) || 0;
-    const totalCell = row.querySelector(".total");
-    const rowTotal = qty * unit;
-    totalCell.textContent = rowTotal.toFixed(2);
-    total += rowTotal;
-  });
-  grandTotalEl.textContent = total.toFixed(2);
+/* FORMAT NUMBERS */
+function formatNumber(num) {
+  return Number(num || 0).toLocaleString();
 }
 
-function addRow(material="", qty="", unit="") {
-  const row = document.createElement("tr");
-  row.innerHTML = `
-    <td class="px-4 py-2"><input type="text" class="w-full p-2 rounded bg-gray-700 border border-gray-600 material" value="${material}"></td>
-    <td class="px-4 py-2"><input type="number" class="w-full p-2 rounded bg-gray-700 border border-gray-600 qty" value="${qty}" min="0"></td>
-    <td class="px-4 py-2"><input type="number" class="w-full p-2 rounded bg-gray-700 border border-gray-600 unit" value="${unit}" min="0"></td>
-    <td class="px-4 py-2 total">${(qty*unit).toFixed(2)}</td>
-    <td class="px-4 py-2 text-center"><button class="bg-red-600 px-3 py-1 rounded hover:bg-red-500 removeBtn">Remove</button></td>
-  `;
-  materialsBody.appendChild(row);
-
-  // Add event listeners
-  row.querySelectorAll(".qty, .unit").forEach(input => input.addEventListener("input", updateTotals));
-  row.querySelector(".removeBtn").addEventListener("click", () => {
-    row.remove();
-    updateTotals();
-  });
-  updateTotals();
+/* EXTRACT NUMBER FROM "10 bags" */
+function extractNumber(qtyText) {
+  const match = qtyText.match(/[\\d.]+/);
+  return match ? parseFloat(match[0]) : 0;
 }
 
-// Buttons
-document.getElementById("addRowBtn").addEventListener("click", () => addRow());
-document.getElementById("newEstimate").addEventListener("click", () => {
-  document.getElementById("contractorName").value = "";
-  document.getElementById("email").value = "";
-  document.getElementById("phone").value = "";
-  document.getElementById("date").valueAsDate = new Date();
-  materialsBody.innerHTML = "";
-  grandTotalEl.textContent = "0";
-});
+/* SAVE */
+function saveData() {
+  localStorage.setItem("estimate", JSON.stringify(items));
+}
 
-// PDF Download
-document.getElementById("downloadPdf").addEventListener("click", () => {
+/* LOAD */
+function loadData() {
+  const saved = localStorage.getItem("estimate");
+  if (saved) {
+    items = JSON.parse(saved);
+  } else {
+    addRow();
+  }
+}
+
+/* ADD ROW */
+function addRow() {
+  items.push({ item: "", qty: "", price: "" });
+  render();
+}
+
+/* DELETE */
+function deleteRow(index) {
+  items.splice(index, 1);
+  render();
+}
+
+/* UPDATE */
+function updateItem(index, field, value) {
+  items[index][field] = value;
+  render();
+}
+
+/* RENDER */
+function render() {
+  const body = document.getElementById("tableBody");
+  body.innerHTML = "";
+
+  let grandTotal = 0;
+
+  items.forEach((item, index) => {
+    const qtyValue = extractNumber(item.qty);
+    const price = Number(item.price || 0);
+    const total = qtyValue * price;
+    grandTotal += total;
+
+    body.innerHTML += `
+      <tr class="border-b border-gray-700">
+        <td>${index + 1}</td>
+
+        <td>
+          <input 
+            value="${item.item}" 
+            oninput="updateItem(${index}, 'item', this.value)"
+            class="bg-gray-700 p-2 rounded w-full"
+          />
+        </td>
+
+        <td>
+          <input 
+            placeholder="e.g. 10 bags"
+            value="${item.qty}" 
+            oninput="updateItem(${index}, 'qty', this.value)"
+            class="bg-gray-700 p-2 rounded w-full"
+          />
+        </td>
+
+        <td>
+          <input 
+            type="number"
+            step="any"
+            value="${item.price}" 
+            oninput="updateItem(${index}, 'price', this.value)"
+            class="bg-gray-700 p-2 rounded w-full text-right"
+          />
+        </td>
+
+        <td class="text-right">
+          ${formatNumber(total)}
+        </td>
+
+        <td>
+          <button onclick="deleteRow(${index})" class="text-red-400">🗑️</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("grandTotal").innerText = formatNumber(grandTotal);
+  saveData();
+}
+
+/* PDF */
+async function downloadPDF(event) {
+  const btn = event.target;
+  btn.innerText = "Generating...";
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const contractorName = document.getElementById("contractorName").value;
-  const email = document.getElementById("email").value;
-  const phone = document.getElementById("phone").value;
-  const date = document.getElementById("date").value;
-  let y = 10;
-  doc.setFontSize(16);
-  doc.text("Construction Estimate", 105, y, { align: "center" });
-  y += 10;
+  doc.setFontSize(18);
+  doc.text("Estimator Pro", 14, 20);
+
+  let y = 40;
+
   doc.setFontSize(12);
-  doc.text(`Contractor: ${contractorName}`, 10, y);
-  y += 7;
-  doc.text(`Email: ${email}`, 10, y);
-  y += 7;
-  doc.text(`Phone: ${phone}`, 10, y);
-  y += 7;
-  doc.text(`Date: ${date}`, 10, y);
+  doc.text("No  Item   Qty   Unit Price   Total", 14, y);
   y += 10;
 
-  // Table
-  doc.text("Materials:", 10, y);
-  y += 7;
-  const rows = [];
-  materialsBody.querySelectorAll("tr").forEach(row => {
-    const material = row.querySelector(".material").value;
-    const qty = row.querySelector(".qty").value;
-    const unit = row.querySelector(".unit").value;
-    const total = row.querySelector(".total").textContent;
-    rows.push([material, qty, unit, total]);
+  let grandTotal = 0;
+
+  items.forEach((item, index) => {
+    const qtyValue = extractNumber(item.qty);
+    const total = qtyValue * item.price;
+    grandTotal += total;
+
+    doc.text(
+      `${index + 1}  ${item.item}  ${item.qty}  ${formatNumber(item.price)}  ${formatNumber(total)}`,
+      14,
+      y
+    );
+    y += 10;
   });
 
-  rows.forEach(r => {
-    doc.text(`${r[0]} | Qty: ${r[1]} | Unit: ${r[2]} | Total: ${r[3]} ₣`, 10, y);
-    y += 7;
-  });
-
-  y += 5;
-  doc.text(`Grand Total: ${grandTotalEl.textContent} ₣`, 10, y);
+  y += 10;
+  doc.text(`Grand Total: ${formatNumber(grandTotal)}`, 14, y);
 
   doc.save("estimate.pdf");
-});
+
+  btn.innerText = "Download PDF";
+}
+
+/* SHARE */
+function generateShareLink() {
+  const data = btoa(JSON.stringify(items));
+  const url = `${window.location.origin}?data=${data}`;
+  navigator.clipboard.writeText(url);
+  alert("Share link copied!");
+}
+
+/* LOAD FROM URL */
+function loadFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const data = params.get("data");
+
+  if (data) {
+    items = JSON.parse(atob(data));
+  }
+}
+
+/* INIT */
+window.onload = () => {
+  loadFromURL();
+  loadData();
+  render();
+};
 </script>
+
 </body>
 </html>
